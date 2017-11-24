@@ -13,6 +13,8 @@ HEADLIGHT_IN_PIN = 15
 class CarInterface():
 
 	def __init__(self):
+		
+		atexit.register(self.cleanup)	
 
 		self.loopThread = threading.Thread(target=self.loop)
 		self.loopThread.daemon = True
@@ -22,7 +24,6 @@ class CarInterface():
 		self.switch = False
 		self.shutdown = False
 
-	def __enter_(self):
 
 		#set mode to board which means use the pysical pin numbering
 		GPIO.setmode(GPIO.BOARD)
@@ -32,7 +33,7 @@ class CarInterface():
 		GPIO.setup(SWITCH_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		# high beam state. 0 high beams on. 1 high beams off
 		GPIO.setup(HEADLIGHT_IN_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
+		
 		self.loopThread.start()
 
 	def getHighbeamInput(self):
@@ -76,14 +77,14 @@ class CarInterface():
 			time.sleep(0.03)
 
 
-	def __exit__(self,**args):
+	def cleanup(self):
 		GPIO.cleanup()
 		print("Clean Up")
 
 
 if __name__ == "__main__":
-	with CarInterface() as car:
+	car = CarInterface()
 
-		while True:
-			time.sleep(0.1)
-			print("headlight in: %i, switch: %i, shutdown %i" % (car.getHighbeamInput(), car.getSwitchInput(), car.getShutdownInput()))
+	while True:
+		time.sleep(0.1)
+		print("headlight in: %i, switch: %i, shutdown %i" % (car.getHighbeamInput(), car.getSwitchInput(), car.getShutdownInput()))
