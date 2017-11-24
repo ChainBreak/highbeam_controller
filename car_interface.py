@@ -22,7 +22,7 @@ class CarInterface():
 		self.switch = False
 		self.shutdown = False
 
-	def __enter_(self):
+	def __enter__(self):
 
 		#set mode to board which means use the pysical pin numbering
 		GPIO.setmode(GPIO.BOARD)
@@ -34,6 +34,8 @@ class CarInterface():
 		GPIO.setup(HEADLIGHT_IN_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 		self.loopThread.start()
+
+		return self
 
 	def getHighbeamInput(self):
 		return self.highbeam_in
@@ -76,7 +78,7 @@ class CarInterface():
 			time.sleep(0.03)
 
 
-	def __exit__(self,**args):
+	def __exit__(self,*args):
 		GPIO.cleanup()
 		print("Clean Up")
 
