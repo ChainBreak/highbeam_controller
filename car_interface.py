@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import time
 import threading
 import timer
@@ -14,7 +14,6 @@ class CarInterface():
 	def __init__(self):
 		self.loopThread = threading.Thread(target=self.loop)
 		self.loopThread.daemon = True
-		self.loopThread.start()
 
 		self.highbeam_out = False
 		self.highbeam_in = False
@@ -30,7 +29,8 @@ class CarInterface():
 		GPIO.setup(SWITCH_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
 		# high beam state. 0 high beams on. 1 high beams off
 		GPIO.setup(HEADLIGHT_IN_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
+		
+		self.loopThread.start()
 
 	def getHighbeamInput(self):
 		return self.highbeam_in
