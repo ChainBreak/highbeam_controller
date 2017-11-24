@@ -1,32 +1,86 @@
 #!/usr/bin/env python
 
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import time
-
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(11,GPIO.OUT) #highbeam output. 1 turn on high beams
-GPIO.setup(13,GPIO.IN, pull_up_down=GPIO.PUD_UP)# switch state
-GPIO.setup(15,GPIO.IN, pull_up_down=GPIO.PUD_UP)# high beam state. 0 high beams on. 1 high beams off
+import threading
+import timer
 
 
-highbeams_out = False
-last_time = time.time()
+class CarInterface():
+	HEADLIGHT_OUT_PIN = 11
+	SWITCH_PIN = 13
+	HEADLIGHT_IN_PIN = 15
 
-for i in range(3):
-	GPIO.output(11,1)
-	time.sleep(0.3)
-	GPIO.output(11,0)
-	time.sleep(0.3)
+	def __init__(self):
+		self.loopThread = threading.Thread(target=self.loop)
+		self.loopThread.daemon = True
+		self.loopThread.start()
 
-while True:
-        switch = GPIO.input(13)
-        highbeams_in = GPIO.input(15)
-        if highbeams_in == True:
-		last_time = time.time()
+		self.highbeam_out = False
+		self.highbeam_in = False
+		self.switch = False
+		self.shutdown = False
 
-	highbeams_out = (time.time() - last_time) > 1.5
-		
-        GPIO.output(11,highbeams_out)
-        print("Switch %i, Highbeams In %i, Highbeams Out %i" % (switch,highbeams_in,highbeams_out))
-        time.sleep(0.03)
 
+		#set mode to board which means use the pysical pin numbering
+		GPIO.setmode(GPIO.BOARD)
+		#highbeam output. 1 turn on high beams
+		GPIO.setup(HEADLIGHT_OUT_PIN,GPIO.OUT)
+		# switch state
+		GPIO.setup(SWITCH_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		# high beam state. 0 high beams on. 1 high beams off
+		GPIO.setup(HEADLIGHT_IN_PIN,GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
+	def getHighbeamInput(self):
+		return self.highbeam_in
+
+	def getSwitchInput(self):
+		return self.switch
+
+	def getShutdownInput(self):
+		return self.shutdown
+
+	def setHighbeamOutput(self,state):
+		self.highbeam_out = state
+
+	def loop(self):
+		shutdown_toggle_count = 0
+		last_switch = False
+		shutdown_count_timer = timer.Timer()
+		while True:
+			#read and write to IO
+			try:
+				GPIO.output(HEADLIGHT_OUT_PIN,self.highbeam_out)
+				self.switch = GPIO.input(SWITCH_PIN)
+				self.highbeam_in = GPIO.input(HEADLIGHT_IN_PIN)
+			except Exception as e:
+				print(e)
+
+			#If the switch is toggled multiple times in a short period
+			#turn on the shutdown output
+			if self.switch != last_switch:
+				last_switch = self.switch
+				shutdown_count_timer.reset()
+				shutdown_toggle_count += 1
+
+			if shutdown_count_timer() > 1.5:
+				shutdown_toggle_count = 0
+
+			self.shutdown = shutdown_toggle_count > 6
+
+			#loop at about 30 hz
+			time.sleep(0.03)
+
+
+	def __del__(self):
+		GPIO.cleanup()
+		print("Closed")
+
+
+if __name__ == "__main__":
+	car = CarInterface()
+
+	while True:
+		time.sleep(0.1)
+		print("h in: %i, switch: %i, shutdown %i", (car.getHighbeamInput(), car.getSwitchInput(), car.getShutdownInput()))
