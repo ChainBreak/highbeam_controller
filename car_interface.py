@@ -4,14 +4,18 @@ import RPi.GPIO as GPIO
 import time
 import threading
 import timer
+import atexit
 
+HEADLIGHT_OUT_PIN = 11
+SWITCH_PIN = 13
+HEADLIGHT_IN_PIN = 15
 
 class CarInterface():
-	HEADLIGHT_OUT_PIN = 11
-	SWITCH_PIN = 13
-	HEADLIGHT_IN_PIN = 15
 
 	def __init__(self):
+		
+		atexit.register(self.cleanup)	
+
 		self.loopThread = threading.Thread(target=self.loop)
 		self.loopThread.daemon = True
 
@@ -64,7 +68,7 @@ class CarInterface():
 				shutdown_count_timer.reset()
 				shutdown_toggle_count += 1
 
-			if shutdown_count_timer() > 1.5:
+			if shutdown_count_timer() > 1.0:
 				shutdown_toggle_count = 0
 
 			self.shutdown = shutdown_toggle_count > 6
@@ -73,9 +77,9 @@ class CarInterface():
 			time.sleep(0.03)
 
 
-	def __del__(self):
+	def cleanup(self):
 		GPIO.cleanup()
-		print("Closed")
+		print("Clean Up")
 
 
 if __name__ == "__main__":
@@ -83,4 +87,4 @@ if __name__ == "__main__":
 
 	while True:
 		time.sleep(0.1)
-		print("h in: %i, switch: %i, shutdown %i", (car.getHighbeamInput(), car.getSwitchInput(), car.getShutdownInput()))
+		print("headlight in: %i, switch: %i, shutdown %i" % (car.getHighbeamInput(), car.getSwitchInput(), car.getShutdownInput()))
