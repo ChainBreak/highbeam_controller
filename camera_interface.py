@@ -14,12 +14,13 @@ class CameraInterface():
 	def __enter__(self):
 		try:
 			self.cam = picamera.PiCamera()
-			self.resolution = (320,240)
+			self.cam.resolution = (320,240)
+			self.cam.framerate = 30
 		except:
 			pass
 		return self
 
-	def __exit(self,*args):
+	def __exit__(self,*args):
 		try:
 			self.cam.close()
 		except:
