@@ -10,19 +10,25 @@ import unique_file_name
 if __name__ == "__main__":
 
 	capture_state_params = [
-	(10.0,"off"), #0 - Out 0, In 0 - highbeams off for a while
+	(1.0,"off"), #0 - Out 0, In 0 - highbeams off for a while
 	(0.0,"on_edge"), #1 - Out 0, In 1 - highbeams just requested to turn on
-	(10.0,"off_edge"), #2 - Out 1, In 0 - highbeams just requested to turn off
-	(0.0,"on") #3 - Out 1, In 1 - highbeams on for a while
+	(0.0,"off_edge"), #2 - Out 1, In 0 - highbeams just requested to turn off
+	(1.0,"on") #3 - Out 1, In 1 - highbeams on for a while
 	]
 	base_path = "/media/pi/highbeamUSB"
+	
+	if os.path.isdir(base_path):
+		for _,rel_path in capture_state_params:
+			path = os.path.join(base_path,rel_path)
+			if not os.path.isdir(path):
+				os.mkdir(path)
+
 	try:
 		with \
 		camera_interface.CameraInterface() as cam, \
 		car_interface.CarInterface() as car:
 
 				highbeam_input = car.getHighbeamInput()
-				last_highbeam_input = highbeam_input
 				highbeam_output = highbeam_input
 				highbeam_delay_timer = timer.Timer()
 				capture_delay_timer = timer.Timer()
@@ -30,19 +36,18 @@ if __name__ == "__main__":
 
 				while True:
 					if car.getShutdownInput():
-						#subprocess.call("sudo shutdown -h now", shell=True)
-						pass
+						subprocess.call("sudo shutdown -h now", shell=True)
+						print("shutdown")
 
 					highbeam_input = car.getHighbeamInput()
 					switch_input = car.getSwitchInput()
 
 					#detect changes in the highbeam_input and reset the delay timer
-					if highbeam_input != last_highbeam_input:
+					if highbeam_input == highbeam_output:
 						highbeam_delay_timer.reset()
-						last_highbeam_input = highbeam_input
 
 					#[off delay, on delay]
-					if highbeam_delay_timer() > [2.0,4.0][highbeam_input]:
+					if highbeam_delay_timer() > [3.0,5.0][highbeam_input]:
 						highbeam_output = highbeam_input
 
 					#Outputs
@@ -54,9 +59,11 @@ if __name__ == "__main__":
 					capture_delay_time,rel_path = capture_state_params[state]
 
 					if capture_delay_timer() > capture_delay_time:
+						capture_delay_timer.reset()
 						path = os.path.join(base_path,rel_path)
-						fileName = unique_file_name.getUniqueFileName(path,"img%05i.png")
+						fileName = unique_file_name.getUniqueFileName(path,"img_%05i.png")
 						print(fileName)
+						cam.capture(fileName)
 
 					time.sleep(0.0333)
 
