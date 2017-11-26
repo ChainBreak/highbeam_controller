@@ -58,7 +58,7 @@ class CarInterface():
 			try:
 				GPIO.output(HEADLIGHT_OUT_PIN,self.highbeam_out)
 				self.switch = GPIO.input(SWITCH_PIN)
-				self.highbeam_in = GPIO.input(HEADLIGHT_IN_PIN)
+				self.highbeam_in = not GPIO.input(HEADLIGHT_IN_PIN)
 			except Exception as e:
 				print(e)
 
